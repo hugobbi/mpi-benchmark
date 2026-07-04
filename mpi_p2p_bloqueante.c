@@ -87,12 +87,12 @@ int main(int argc, char* argv[]) {
     if (rank == 0) {
     // Print the results for benchmarking
     printf("===\n");
-	printf("blocking");
-	printf("n: %d\n", n);
-	printf("size: %d\n", size);
-	printf("comm_time: %.6f\n", comm_max);
-	printf("comp_time: %.6f\n", comp_max);
-	printf("total_time: %.6f\n", total_max);
+	printf("blocking\n");
+	printf("n:\t%d\n", n);
+	printf("size:\t%d\n", size);
+	printf("comm_time:\t%.6f\n", comm_max);
+	printf("comp_time:\t%.6f\n", comp_max);
+	printf("total_time:\t%.6f\n", total_max);
     printf("===\n");
     }
 
