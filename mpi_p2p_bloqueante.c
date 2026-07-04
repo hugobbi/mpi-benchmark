@@ -26,14 +26,20 @@ int main(int argc, char* argv[]) {
         initialize_matrices(n, A, B, C);
     }
 
-    double t1, t2;
-    if(rank == 0)
-	    t1 = MPI_Wtime();
-
-
     double* local_A = (double*)malloc((n * n / size) * sizeof(double));
     double* local_C = (double*)malloc((n * n / size) * sizeof(double));
 
+    double comm_local = 0.0;
+    double comp_local = 0.0;
+    double total_local;
+    double comm_max = 0.0;
+    double comp_max = 0.0;
+    double total_max = 0.0;
+
+    MPI_Barrier(MPI_COMM_WORLD); // Synchronize all processes before starting the timer
+    double total_start = MPI_Wtime();
+
+    double comm_start = MPI_Wtime();  
     if (rank == 0) {
         for (int i = 1; i < size; i++) {
             MPI_Send(A + i * (n * n / size), n * n / size, MPI_DOUBLE, i, 0, MPI_COMM_WORLD);
@@ -46,7 +52,9 @@ int main(int argc, char* argv[]) {
     }
 
     MPI_Bcast(B, n * n, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    comm_local += MPI_Wtime() - comm_start;
 
+    double comp_start = MPI_Wtime();
     for (int i = 0; i < n / size; i++) {
         for (int j = 0; j < n; j++) {
             local_C[i * n + j] = 0.0;
@@ -55,7 +63,9 @@ int main(int argc, char* argv[]) {
             }
         }
     }
+    comp_local += MPI_Wtime() - comp_start;
 
+    comm_start = MPI_Wtime();
     if (rank == 0) {
         for (int i = 0; i < n * n / size; i++) {
             C[i] = local_C[i];
@@ -66,11 +76,23 @@ int main(int argc, char* argv[]) {
     } else {
         MPI_Send(local_C, n * n / size, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD);
     }
+    comm_local += MPI_Wtime() - comm_start;
 
-   if(rank == 0){
-	t2 = MPI_Wtime();
-	printf("Execution time: %.6f\n", t2 - t1);
-   }
+    total_local = MPI_Wtime() - total_start;
+
+    MPI_Reduce(&comm_local, &comm_max, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
+    MPI_Reduce(&comp_local, &comp_max, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
+    MPI_Reduce(&total_local, &total_max, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
+
+    if (rank == 0) {
+    // Print the results for benchmarking
+	printf("blocking");
+	printf("n: %d\n", n);
+	printf("size: %d\n", size);
+	printf("comm_time: %.6f\n", comm_max);
+	printf("comp_time: %.6f\n", comp_max);
+	printf("total_time: %.6f\n", total_max);
+    }
 
 
 /*    if (rank == 0) {
