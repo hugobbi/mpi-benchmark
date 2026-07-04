@@ -67,14 +67,15 @@ int main(int argc, char* argv[]) {
 
     if (rank == 0) {
     // Print the results for benchmarking
-    printf("===\n");
-    printf("collective\n");
-    printf("n:\t\t%d\n", n);
-    printf("size:\t\t%d\n", size);
-    printf("comm_time:\t%.6f\n", comm_max);
-    printf("comp_time:\t%.6f\n", comp_max);
-    printf("total_time:\t%.6f\n", total_max);
-    printf("===\n");
+    // printf("===\n");
+    // printf("collective\n");
+    // printf("n:\t\t%d\n", n);
+    // printf("size:\t\t%d\n", size);
+    // printf("comm_time:\t%.6f\n", comm_max);
+    // printf("comp_time:\t%.6f\n", comp_max);
+    // printf("total_time:\t%.6f\n", total_max);
+    // printf("===\n");
+    printf("collective,%d,%d,%.6f,%.6f,%.6f\n", n, size, comm_max, comp_max, total_max);
     }
 
 /*    if (rank == 0) {
