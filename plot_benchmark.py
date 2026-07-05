@@ -75,6 +75,12 @@ def parse_args() -> argparse.Namespace:
         choices=tuple(VARIANT_LABELS),
         help="Plot only a specific variant (blocking, non-blocking, or collective).",
     )
+    parser.add_argument(
+        "--std-style",
+        choices=("errorbar", "shade"),
+        default="shade",
+        help="How to visualize standard deviation in line plots.",
+    )
     return parser.parse_args()
 
 
@@ -200,6 +206,7 @@ def _plot_metric_lines(
     variant_data: dict[int, list[PointStats]],
     metric: str,
     color_for_size: dict[int, str],
+    std_style: str,
 ) -> None:
     sizes = sorted(variant_data)
     for size in sizes:
@@ -261,16 +268,26 @@ def _plot_metric_lines(
             continue
 
         if xs:
-            ax.errorbar(
-                xs,
-                ys,
-                yerr=errs,
-                marker="o",
-                linewidth=1.6,
-                capsize=3,
-                label=f"np={size}",
-                color=color_for_size[size],
-            )
+            line_kwargs = {
+                "marker": "o",
+                "linewidth": 1.6,
+                "label": f"np={size}",
+                "color": color_for_size[size],
+            }
+            if std_style == "errorbar":
+                ax.errorbar(xs, ys, yerr=errs, capsize=3, **line_kwargs)
+            else:
+                lower = [value - err for value, err in zip(ys, errs, strict=True)]
+                upper = [value + err for value, err in zip(ys, errs, strict=True)]
+                ax.plot(xs, ys, **line_kwargs)
+                ax.fill_between(
+                    xs,
+                    lower,
+                    upper,
+                    color=color_for_size[size],
+                    alpha=0.18,
+                    linewidth=0,
+                )
 
     ax.set_ylabel(ylabel)
     ax.set_xlabel("Matrix size n")
@@ -279,7 +296,12 @@ def _plot_metric_lines(
     ax.legend(title="Processes", fontsize=9)
 
 
-def plot_variant(variant: str, variant_data: dict[int, list[PointStats]], outdir: Path) -> None:
+def plot_variant(
+    variant: str,
+    variant_data: dict[int, list[PointStats]],
+    outdir: Path,
+    std_style: str,
+) -> None:
     outdir.mkdir(parents=True, exist_ok=True)
     sizes = sorted(variant_data)
     palette = plt.get_cmap("tab10")
@@ -305,7 +327,7 @@ def plot_variant(variant: str, variant_data: dict[int, list[PointStats]], outdir
         fig, ax = plt.subplots(figsize=(8, 5), constrained_layout=True)
         fig.suptitle(f"MPI benchmark - {VARIANT_LABELS.get(variant, variant)}")
 
-        _plot_metric_lines(ax, variant_data, metric, color_for_size)
+        _plot_metric_lines(ax, variant_data, metric, color_for_size, std_style)
 
         if metric == "efficiency":
             ax.axhline(1.0, color="#999999", linestyle="--", linewidth=1.2, label="Ideal")
@@ -435,7 +457,7 @@ def main() -> None:
 
     for variant, variant_data in selected_variants.items():
         variant_outdir = args.outdir / variant
-        plot_variant(variant, variant_data, variant_outdir)
+        plot_variant(variant, variant_data, variant_outdir, args.std_style)
         for metric in PLOT_METRICS:
             print(f"Saved: {variant_outdir / f'{variant}_{metric}.png'}")
 
